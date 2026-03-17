@@ -66,9 +66,11 @@ app.post('/api/sync-records', async (req, res) => {
 
     // เตรียมข้อมูลลง MongoDB
     const operations = allRows.map(row => {
-      // 🔥 แก้ไขเรื่อง Timezone: บังคับให้ Date รับรู้ว่าเป็นเวลา GMT+7 (ไทย)
-      // เติม +07:00 ต่อท้ายเพื่อให้เซิร์ฟเวอร์ไม่บวกเวลาเพิ่มเอง
-      const thaiTime = new Date(row.pay_time.replace(' ', 'T') + "+07:00");
+      // 1. รับเวลาจากจีนมา (ระบุว่าเป็น +08:00)
+      const chinaTime = new Date(row.pay_time.replace(' ', 'T') + "+08:00");
+
+      // 2. 🔥 ลดลง 1 ชั่วโมงเพื่อให้เป็นเวลาไทย (3,600,000 มิลลิวินาที)
+      const thaiTime = new Date(chinaTime.getTime() - (60 * 60 * 1000));
 
       return {
         updateOne: {
@@ -106,7 +108,7 @@ app.get('/api/records', async (req, res) => {
   const { machineId, startDate, endDate } = req.query;
   
   try {
-    // 🔥 ปรับการ Query วันที่ให้รองรับ Timezone ไทยเช่นกัน
+    // ใช้ Timezone ไทยในการค้นหา
     const start = new Date(startDate + "T00:00:00+07:00");
     const end = new Date(endDate + "T23:59:59+07:00");
 
