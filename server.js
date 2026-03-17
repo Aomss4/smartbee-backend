@@ -66,18 +66,16 @@ app.post('/api/sync-records', async (req, res) => {
 
     // เตรียมข้อมูลลง MongoDB
     const operations = allRows.map(row => {
-      // 1. รับเวลาจากจีนมา (ระบุว่าเป็น +08:00)
-      const chinaTime = new Date(row.pay_time.replace(' ', 'T') + "+08:00");
-
-      // 2. 🔥 ลดลง 1 ชั่วโมงเพื่อให้เป็นเวลาไทย (3,600,000 มิลลิวินาที)
-      const thaiTime = new Date(chinaTime.getTime() - (60 * 60 * 1000));
+      // 🔥 บันทึกตามเวลาต้นฉบับจีน (+08:00) 
+      // เพื่อให้ MongoDB บันทึกเป็น UTC ที่ถูกต้อง และหน้าบ้านจะแปลงเป็นเวลาไทยให้เอง
+      const payTime = new Date(row.pay_time.replace(' ', 'T') + "+08:00");
 
       return {
         updateOne: {
           filter: { record_id: row.id },
           update: { 
             $set: { 
-              pay_time: thaiTime, 
+              pay_time: payTime, 
               product_name: row.product_name,
               user_name: row.user_name,
               pay_num: row.pay_num,
@@ -108,7 +106,7 @@ app.get('/api/records', async (req, res) => {
   const { machineId, startDate, endDate } = req.query;
   
   try {
-    // ใช้ Timezone ไทยในการค้นหา
+    // ใช้ Timezone ไทยในการค้นหา (+07:00)
     const start = new Date(startDate + "T00:00:00+07:00");
     const end = new Date(endDate + "T23:59:59+07:00");
 
